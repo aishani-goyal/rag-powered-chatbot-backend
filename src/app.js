@@ -72,7 +72,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   path: "/ws",
   cors: {
-    origin: process.env.FRONTEND_URL || "https://intellinews.onrender.com",
+    origin: process.env.FRONTEND_URL || "https://intellinews-hrct.onrender.com",
     methods: ["GET", "POST"],
   },
 });
