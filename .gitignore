@@ -1,0 +1,22 @@
+# Node.js dependencies
+node_modules/
+
+# Environment files
+.env
+.env.* 
+!.env.example
+
+# Logs
+*.log
+
+# Docker volumes
+redis_data/
+qdrant_data/
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
