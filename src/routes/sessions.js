@@ -185,7 +185,8 @@ router.post("/chat/message", async (req, res) => {
  * POST /api/chat/session
  * Create a new chat session
  */
-router.post("/chat/session", async (req, res) => {
+// NEW: POST /api/sessions
+router.post("/", async (req, res) => {
   try {
     const sessionId = req.body.sessionId || `sess_${Date.now()}`;
     const session = await sessionUtils.createSession(sessionId);
@@ -195,5 +196,6 @@ router.post("/chat/session", async (req, res) => {
     res.status(500).json({ error: "Failed to create session" });
   }
 });
+
 
 module.exports = router;
