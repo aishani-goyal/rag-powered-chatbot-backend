@@ -2,6 +2,13 @@
 
 Node.js + Express backend for the RAG-Powered News Chatbot. Handles API requests, session management, RAG pipeline, and news ingestion.
 
+## 🌐 Live API
+👉 Base URL: [https://rag-powered-chatbot-backend-gegq.onrender.com](https://rag-powered-chatbot-backend-gegq.onrender.com)
+
+### Example Endpoints
+- `POST /api/chat/message`
+- `GET /api/chat/history/:sessionId`
+
 ## 🚀 Features
 
 - REST API + Streaming support (WebSocket/SSE)
