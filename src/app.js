@@ -1,19 +1,27 @@
 // src/app.js
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-require("dotenv").config();
+const http = require("http");
+const { Server } = require("socket.io");
 
 const chatRoutes = require("./routes/chat");
 const sessionRoutes = require("./routes/sessions");
-const { initializeServices } = require("./config/database");
+const {
+  initializeServices,
+  sessionUtils,
+  vectorUtils,
+} = require("./config/database");
 const logger = require("./utils/logger");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// ----------------------------
 // Middleware
+// ----------------------------
 app.use(helmet());
 app.use(
   cors({
@@ -24,9 +32,14 @@ app.use(
 app.use(morgan("combined"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use("/api/chat", require("./routes/chat"));
 
-// Health check endpoint
+// ----------------------------
+// REST API Routes
+// ----------------------------
+app.use("/api/chat", chatRoutes);
+app.use("/api/sessions", sessionRoutes);
+
+// Health check
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "healthy",
@@ -35,9 +48,10 @@ app.get("/health", (req, res) => {
   });
 });
 
-// API Routes
-app.use("/api/chat", chatRoutes);
-app.use("/api/sessions", sessionRoutes);
+// 404 handler
+app.use("*", (req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -51,18 +65,59 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
-app.use("*", (req, res) => {
-  res.status(404).json({ error: "Route not found" });
+// ----------------------------
+// HTTP Server & Socket.IO
+// ----------------------------
+const server = http.createServer(app);
+const io = new Server(server, {
+  path: "/ws",
+  cors: {
+    origin: process.env.FRONTEND_URL || "https://intellinews.onrender.com",
+    methods: ["GET", "POST"],
+  },
 });
 
-// Initialize services and start server
+// Handle WebSocket connections
+io.on("connection", (socket) => {
+  logger.info(`User connected via WebSocket: ${socket.id}`);
+
+  socket.on("chatMessage", async (data) => {
+    try {
+      // Example: store session message in Redis
+      if (data.sessionId && data.message) {
+        await sessionUtils.addMessage(data.sessionId, {
+          sender: "user",
+          text: data.message,
+        });
+      }
+
+      // Example: generate bot response
+      const botReply = { sender: "bot", text: "Processing..." };
+      socket.emit("chatResponse", botReply);
+
+      // TODO: call RAG pipeline, Qdrant search, Gemini API, etc.
+      // Once response is ready, emit back to frontend:
+      // socket.emit("chatResponse", { sender: "bot", text: finalAnswer });
+    } catch (error) {
+      logger.error("WebSocket chat error:", error);
+      socket.emit("chatResponse", { sender: "bot", text: "Error occurred." });
+    }
+  });
+
+  socket.on("disconnect", () => {
+    logger.info(`User disconnected: ${socket.id}`);
+  });
+});
+
+// ----------------------------
+// Start server after initializing services
+// ----------------------------
 async function startServer() {
   try {
     await initializeServices();
     logger.info("Services initialized successfully");
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV}`);
     });
@@ -82,6 +137,7 @@ process.on("unhandledRejection", (reason, promise) => {
   logger.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
+// Run server
 if (require.main === module) {
   startServer();
 }
