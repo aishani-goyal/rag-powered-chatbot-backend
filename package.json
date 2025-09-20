@@ -39,6 +39,7 @@
     "morgan": "^1.10.0",
     "node-fetch": "^2.7.0",
     "rss-parser": "^3.13.0",
+    "socket.io": "^4.8.1",
     "uuid": "^8.3.2",
     "winston": "^3.13.0",
     "xml2js": "^0.6.2"
