@@ -40,7 +40,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Optional: Ingest news articles
+Ingest news articles
 
 ```bash
 npm run ingest
