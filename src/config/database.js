@@ -33,14 +33,21 @@ const initializeRedis = async () => {
 // ----------------------------
 const qdrantHttp = {
   baseUrl: process.env.QDRANT_URL || "http://localhost:6333",
+  apiKey: process.env.QDRANT_API_KEY || "",
+
+  // Helper to build headers with API key if present
+  getHeaders() {
+    const headers = { "Content-Type": "application/json" };
+    if (this.apiKey) headers["api-key"] = this.apiKey;
+    return headers;
+  },
 
   async getCollection(collectionName) {
     const response = await fetch(
-      `${this.baseUrl}/collections/${collectionName}`
+      `${this.baseUrl}/collections/${collectionName}`,
+      { headers: this.getHeaders() }
     );
-    if (response.ok) {
-      return await response.json();
-    }
+    if (response.ok) return await response.json();
     throw new Error(`Collection not found: ${response.status}`);
   },
 
@@ -49,11 +56,10 @@ const qdrantHttp = {
       `${this.baseUrl}/collections/${collectionName}`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: this.getHeaders(),
         body: JSON.stringify(config),
       }
     );
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(
@@ -68,12 +74,11 @@ const qdrantHttp = {
       `${this.baseUrl}/collections/${collectionName}`,
       {
         method: "DELETE",
+        headers: this.getHeaders(),
       }
     );
-
-    if (!response.ok) {
+    if (!response.ok)
       throw new Error(`Delete collection failed: ${response.status}`);
-    }
     return true;
   },
 
@@ -82,11 +87,10 @@ const qdrantHttp = {
       `${this.baseUrl}/collections/${collectionName}/points?wait=true`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: this.getHeaders(),
         body: JSON.stringify({ points }),
       }
     );
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -99,11 +103,10 @@ const qdrantHttp = {
       `${this.baseUrl}/collections/${collectionName}/points/search`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this.getHeaders(),
         body: JSON.stringify(searchParams),
       }
     );
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -120,7 +123,9 @@ const initializeQdrant = async () => {
     const collectionName = "news_embeddings";
 
     // Test connection first
-    const healthResponse = await fetch(`${qdrantHttp.baseUrl}/`);
+    const healthResponse = await fetch(`${qdrantHttp.baseUrl}/`, {
+      headers: qdrantHttp.getHeaders(),
+    });
     if (!healthResponse.ok) {
       throw new Error(`Qdrant not accessible at ${qdrantHttp.baseUrl}`);
     }
